@@ -1,0 +1,134 @@
+/* Reset et base */
+body {
+    font-family: "Georgia", serif; /* Police avec empattements, plus lisible pour les livres */
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    background-color: #f9f9f9;
+    font-size: 18px; /* Taille augmentée pour le confort visuel */
+}
+
+/* Conteneur central */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* En-tête */
+header {
+    background-color: #2c3e50;
+    color: #fff;
+    padding: 40px 0;
+    text-align: center;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 2.5em;
+    letter-spacing: 1px;
+}
+
+.subtitle {
+    font-style: italic;
+    opacity: 0.9;
+    margin-top: 10px;
+}
+
+/* Navigation */
+nav {
+    margin-top: 20px;
+}
+
+nav a {
+    color: #fff;
+    text-decoration: none;
+    margin: 0 15px;
+    font-size: 1.1em;
+    border-bottom: 1px solid transparent;
+}
+
+nav a:hover {
+    border-bottom: 1px solid #fff;
+}
+
+/* Contenu principal */
+main {
+    background: #fff;
+    padding: 40px;
+    margin-top: -20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    border-radius: 4px;
+}
+
+h2 {
+    color: #2c3e50;
+    border-bottom: 2px solid #eaeaea;
+    padding-bottom: 10px;
+    margin-top: 40px;
+}
+
+h3 {
+    color: #444;
+    margin-bottom: 5px;
+}
+
+/* Livres */
+.book {
+    margin-bottom: 30px;
+    padding-left: 20px;
+    border-left: 4px solid #2c3e50;
+}
+
+.genre {
+    font-size: 0.9em;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 0;
+}
+
+/* Typographie spécifique */
+em {
+    font-style: italic;
+}
+
+.signature {
+    text-align: right;
+    font-style: italic;
+    margin-top: 30px;
+}
+
+.center {
+    text-align: center;
+}
+
+/* Bouton */
+.btn {
+    display: inline-block;
+    background-color: #2c3e50;
+    color: #fff;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 4px;
+    margin-top: 20px;
+}
+
+.btn:hover {
+    background-color: #34495e;
+}
+
+/* Pied de page */
+footer {
+    text-align: center;
+    padding: 40px 0;
+    color: #7f8c8d;
+    font-size: 0.9em;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    header h1 { font-size: 2em; }
+    main { padding: 20px; }
+}
