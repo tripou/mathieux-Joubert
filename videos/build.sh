@@ -63,7 +63,13 @@ PER_IMAGE=$(awk -v d="$DURATION" -v n="$NUM_IMAGES" 'BEGIN { printf "%.3f", d/n 
 WORKDIR=$(mktemp -d)
 trap 'rm -rf "$WORKDIR"' EXIT
 
-# 1. Génère un clip "Ken Burns" (zoom lent) par image, durée égale, format cible.
+# Toile de fond agrandie (15%) sur laquelle zoompan effectue le Ken Burns,
+# recadrée depuis le centre (force_original_aspect_ratio=increase + crop)
+# pour ne jamais déformer une image dont le ratio diffère du format cible.
+BIGW=$(awk -v w="$WIDTH" 'BEGIN { v=int(w*1.15); if (v%2!=0) v++; print v }')
+BIGH=$(awk -v h="$HEIGHT" 'BEGIN { v=int(h*1.15); if (v%2!=0) v++; print v }')
+
+# 1. Génère un clip "Ken Burns" (zoom lent, centré) par image, durée égale.
 i=0
 CLIP_LIST="$WORKDIR/clips.txt"
 : > "$CLIP_LIST"
@@ -71,7 +77,7 @@ for IMG in "${IMAGES[@]}"; do
     OUT="$WORKDIR/clip_$i.mp4"
     FRAMES=$(awk -v s="$PER_IMAGE" 'BEGIN { printf "%d", s*25 }')
     ffmpeg -y -loglevel error -loop 1 -i "$IMG" -t "$PER_IMAGE" \
-        -vf "scale=${WIDTH}*1.15:${HEIGHT}*1.15,zoompan=z='min(zoom+0.0007,1.15)':d=${FRAMES}:s=${WIDTH}x${HEIGHT}:fps=25,format=yuv420p" \
+        -vf "scale=${BIGW}:${BIGH}:force_original_aspect_ratio=increase,crop=${BIGW}:${BIGH},zoompan=z='min(zoom+0.0007,1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${FRAMES}:s=${WIDTH}x${HEIGHT}:fps=25,format=yuv420p" \
         -c:v libx264 -pix_fmt yuv420p "$OUT"
     echo "file '$OUT'" >> "$CLIP_LIST"
     i=$((i+1))

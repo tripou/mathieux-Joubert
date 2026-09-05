@@ -3,5 +3,4 @@ assets/*/*.jpeg
 assets/*/*.png
 assets/*/*.mp3
 assets/*/*.wav
-assets/*/*.srt
 output/*.mp4
