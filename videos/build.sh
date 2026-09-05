@@ -11,7 +11,10 @@
 #
 # Prérequis dans videos/assets/<slug>/ :
 #   01.jpg, 02.jpg, ... (images/illustrations, dans l'ordre du plan de plans)
-#   music.mp3           (optionnel, musique de fond)
+#   narration.mp3       (optionnel, voix off/lecture d'extrait, pleine piste ;
+#                        si présent et qu'aucune durée n'est passée en 3e
+#                        argument, la durée de la vidéo s'aligne dessus)
+#   music.mp3           (optionnel, musique de fond, en sourdine sous narration.mp3)
 #   <mode>.srt          (optionnel, sous-titres synchronisés, ex: trailer.srt)
 #   meta.txt            (optionnel, deux lignes: TITLE=... puis CTA=...)
 #
@@ -35,7 +38,15 @@ else
     echo "Mode inconnu: $MODE (attendu: trailer ou teaser)" >&2
     exit 1
 fi
-DURATION="${3:-$DEFAULT_DURATION}"
+NARRATION_FILE="$ASSETS_DIR/narration.mp3"
+if [[ -n "${3:-}" ]]; then
+    DURATION="$3"
+elif [[ -f "$NARRATION_FILE" ]]; then
+    DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$NARRATION_FILE")
+    DURATION=$(awk -v d="$DURATION" 'BEGIN { printf "%.2f", d }')
+else
+    DURATION="$DEFAULT_DURATION"
+fi
 
 shopt -s nullglob
 IMAGES=("$ASSETS_DIR"/*.jpg "$ASSETS_DIR"/*.jpeg "$ASSETS_DIR"/*.png)
@@ -108,21 +119,34 @@ else
 fi
 
 # 4. Sous-titres optionnels (videos/assets/<slug>/<mode>.srt).
+# Fond opaque (BorderStyle=3/BackColour) + police plus grande et remontée
+# (MarginV) pour rester lisible sur un fond chargé et hors des zones d'UI
+# (boutons, pseudo) des plateformes verticales.
 SRT_FILE="$ASSETS_DIR/${MODE}.srt"
 CAPTIONED="$WORKDIR/captioned.mp4"
 if [[ -f "$SRT_FILE" ]]; then
-    ffmpeg -y -loglevel error -i "$TITLED" -vf "subtitles=${SRT_FILE}:force_style='FontName=DejaVu Sans,FontSize=18,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,BorderStyle=1,Outline=2'" -c:a copy "$CAPTIONED"
+    SUB_FONTSIZE=$((WIDTH/24))
+    ffmpeg -y -loglevel error -i "$TITLED" -vf "subtitles=${SRT_FILE}:force_style='FontName=DejaVu Sans,Bold=1,FontSize=${SUB_FONTSIZE},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BackColour=&HA0000000,BorderStyle=3,Outline=1,Shadow=0,MarginV=90'" -c:a copy "$CAPTIONED"
 else
     cp "$TITLED" "$CAPTIONED"
 fi
 
-# 5. Musique de fond optionnelle (videos/assets/<slug>/music.mp3), fondue en fin.
+# 5. Piste audio : narration.mp3 (pleine voix, prioritaire) mixée avec
+# music.mp3 en sourdine si les deux sont présents, sinon l'un ou l'autre.
 MUSIC_FILE="$ASSETS_DIR/music.mp3"
 FINAL="$OUTPUT_DIR/${SLUG}-${MODE}.mp4"
-if [[ -f "$MUSIC_FILE" ]]; then
-    FADE_START=$(awk -v d="$DURATION" 'BEGIN { printf "%.2f", d-2 }')
+FADE_START=$(awk -v d="$DURATION" 'BEGIN { v=d-1; if (v<0) v=0; printf "%.2f", v }')
+if [[ -f "$NARRATION_FILE" && -f "$MUSIC_FILE" ]]; then
+    ffmpeg -y -loglevel error -i "$CAPTIONED" -i "$NARRATION_FILE" -i "$MUSIC_FILE" \
+        -filter_complex "[1:a]atrim=0:${DURATION},afade=t=out:st=${FADE_START}:d=1[narr];[2:a]atrim=0:${DURATION},volume=0.15,afade=t=out:st=${FADE_START}:d=1[bed];[narr][bed]amix=inputs=2:duration=first:dropout_transition=0[aout]" \
+        -map 0:v -map "[aout]" -c:v copy -shortest "$FINAL"
+elif [[ -f "$NARRATION_FILE" ]]; then
+    ffmpeg -y -loglevel error -i "$CAPTIONED" -i "$NARRATION_FILE" \
+        -filter_complex "[1:a]atrim=0:${DURATION},afade=t=out:st=${FADE_START}:d=1[aout]" \
+        -map 0:v -map "[aout]" -c:v copy -shortest "$FINAL"
+elif [[ -f "$MUSIC_FILE" ]]; then
     ffmpeg -y -loglevel error -i "$CAPTIONED" -i "$MUSIC_FILE" \
-        -filter_complex "[1:a]atrim=0:${DURATION},afade=t=out:st=${FADE_START}:d=2,volume=0.6[aout]" \
+        -filter_complex "[1:a]atrim=0:${DURATION},afade=t=out:st=${FADE_START}:d=1,volume=0.6[aout]" \
         -map 0:v -map "[aout]" -c:v copy -shortest "$FINAL"
 else
     cp "$CAPTIONED" "$FINAL"
