@@ -86,9 +86,15 @@ TITLED="$WORKDIR/titled.mp4"
 FONT="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 if [[ -n "$TITLE" || -n "$CTA" ]] && [[ -f "$FONT" ]]; then
     FADE_START=$(awk -v d="$DURATION" 'BEGIN { printf "%.2f", d-4 }')
-    FILTER="drawtext=fontfile=${FONT}:text='${TITLE}':fontcolor=white:fontsize=$((WIDTH/22)):borderw=3:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2-40:enable='gte(t,${FADE_START})'"
+    # Le texte passe par un fichier (textfile=) pour éviter tout problème
+    # d'échappement d'apostrophes/deux-points dans le titre ou le CTA.
+    TITLE_FILE="$WORKDIR/title.txt"
+    CTA_FILE="$WORKDIR/cta.txt"
+    printf '%s' "$TITLE" > "$TITLE_FILE"
+    printf '%s' "$CTA" > "$CTA_FILE"
+    FILTER="drawtext=fontfile=${FONT}:textfile=${TITLE_FILE}:fontcolor=white:fontsize=$((WIDTH/22)):borderw=3:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2-40:enable='gte(t\,${FADE_START})'"
     if [[ -n "$CTA" ]]; then
-        FILTER="${FILTER},drawtext=fontfile=${FONT}:text='${CTA}':fontcolor=white:fontsize=$((WIDTH/34)):borderw=2:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2+40:enable='gte(t,${FADE_START})'"
+        FILTER="${FILTER},drawtext=fontfile=${FONT}:textfile=${CTA_FILE}:fontcolor=white:fontsize=$((WIDTH/34)):borderw=2:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2+40:enable='gte(t\,${FADE_START})'"
     fi
     ffmpeg -y -loglevel error -i "$SLIDESHOW" -vf "$FILTER" -c:a copy "$TITLED"
 else
